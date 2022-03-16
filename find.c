@@ -143,7 +143,7 @@ int main(int argc, char** argv) {
 	char buf[MAX_PATH];
 	GetCurrentDirectory(MAX_PATH, buf);
 	strcat(buf,dirWildCard);
-	MAX_THREADS = getproccount();
+	MAX_THREADS = getproccount()-1;
 	ScanAllFiles(buf, argv[1]);
 	return 0;
 }
