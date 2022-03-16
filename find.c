@@ -3,10 +3,9 @@
 #include <string.h>
 #include <stdlib.h>
 #define MIN_ALLOC 320
-#define MAX_THREADS 8
 
 char* dirWildCard = "\\*";
-
+int MAX_THREADS = 7;
 typedef struct _SEARCH_INFO {
 	char path[MAX_PATH];
 	char* query;
@@ -59,7 +58,9 @@ int _min(int a, int b){
 void ScanAllFiles(char* path, char* query){
 	int count = 0;
 	int thread_count;
+	int dir_count;
 	char buf[MAX_PATH];
+	char dirs[8][MAX_PATH];
 	HANDLE threads[MAX_THREADS];
 	SEARCH_INFO searches[MAX_THREADS];
 	WIN32_FIND_DATAA files[1024];
@@ -77,6 +78,7 @@ void ScanAllFiles(char* path, char* query){
 	while (count > 0){ // while(count) would loop infinitely 
 		// unless you do count -= _min(MAX_THREADS, count) no point though 
 		thread_count = 0;
+		dir_count = 0;
 		j = i + _min(count,MAX_THREADS);
 		for (; i < j; i++){
 			if (files[i].dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY){
@@ -84,9 +86,9 @@ void ScanAllFiles(char* path, char* query){
 				if (!strcmp(dirName, "..") || !strcmp(dirName, ".")){
 					continue;
 				}
-				strcpy(buf, dirName);
-				strcat(buf, dirWildCard);
-				ScanAllFiles(buf, query);
+				strcpy(dirs[dir_count], dirName);
+				strcat(dirs[dir_count], dirWildCard);
+				dir_count++;
 			}
 			else {
 				if (!strlen(files[i].cFileName)){
@@ -102,12 +104,34 @@ void ScanAllFiles(char* path, char* query){
 		count -= MAX_THREADS;
 		WaitForMultipleObjects(thread_count,
 			threads, TRUE, INFINITE);
+		// do it this way to make sure
+		// no more than MAX_THREADS+1 execute at a time
+		for (int k = 0; k < dir_count; k++){
+			ScanAllFiles(dirs[k], query);
+		}
 	}
 	
 	epilog:
 	if (hFindFile != INVALID_HANDLE_VALUE){
 		FindClose(hFindFile);
 	}
+}
+int getproccount(){
+	SYSTEM_INFO sysInfo;
+	GetSystemInfo(&sysInfo);
+	return sysInfo.dwNumberOfProcessors;
+	/*
+	int count = 0; // terribly inefficient way to count bits 
+	// but it's only done once so it's OK
+	DWORD_PTR processAffinity;
+	DWORD_PTR systemAffinity;
+	GetProcessAffinityMask((HANDLE)-1, &processAffinity, &systemAffinity);
+	for (int i = 0; i < sizeof(DWORD_PTR) * 8; i++){
+		if (processAffinity & 1 == 1)
+			count++;
+		processAffinity >> 1;
+	}
+	return count;*/
 }
 
 
@@ -119,6 +143,7 @@ int main(int argc, char** argv) {
 	char buf[MAX_PATH];
 	GetCurrentDirectory(MAX_PATH, buf);
 	strcat(buf,dirWildCard);
+	MAX_THREADS = getproccount();
 	ScanAllFiles(buf, argv[1]);
 	return 0;
 }
