@@ -137,7 +137,7 @@ int getproccount(){
 
 int main(int argc, char** argv) {
 	if (argc != 2){
-		printf("find_alt.exe <str>\n");
+		printf("%s <str>\n", argv[0]);
 		return 0;
 	}
 	char buf[MAX_PATH];
