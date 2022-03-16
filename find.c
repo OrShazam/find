@@ -34,7 +34,7 @@ void SearchFile(SEARCH_INFO* searchInfo){
 			lineCounter++;
 		}
 		if (!memcmp(&buffer[i], query, queryLen)){
-			printf("FILE: %s\nLINE: %d\n", 
+			printf("FILE: %s\nLINE: %d\n\n", 
 			searchInfo->path, lineCounter);
 		}
 	}
